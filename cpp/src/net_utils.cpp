@@ -13,19 +13,19 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <string>
+#include <string_view>
 
 #include "cuda_macros.hpp"
 
-static void ResolveHostName(sockaddr_in* saddr, const std::string& host_name, int port)
+static void ResolveHostName(sockaddr_in* saddr, std::string_view host_name, int port)
 {
   addrinfo hints = {0, AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, nullptr, nullptr, nullptr};
   addrinfo* res;
   char port_buf[16];
   snprintf(port_buf, 16, "%d", port);
-  int ret = getaddrinfo(host_name.c_str(), port_buf, &hints, &res);
+  int ret = getaddrinfo(host_name.data(), port_buf, &hints, &res);
   if (ret != 0) {
-    printf("Resolve IP for host %s failed.\n", host_name.c_str());
+    printf("Resolve IP for host %s failed.\n", host_name.data());
     abort();
   }
   *saddr = *(sockaddr_in*)(res->ai_addr);
@@ -62,7 +62,7 @@ int ServerAccept(int listen_fd, sockaddr_in* client_addr, socklen_t* client_addr
   return client_sock;
 }
 
-int CreateClientFd(const std::string& server_name, int server_port)
+int CreateClientFd(std::string_view server_name, int server_port)
 {
   int client_sock = socket(AF_INET, SOCK_STREAM, 0);
   WHOLEMEMORY_CHECK_NOTHROW(client_sock >= 0);
@@ -73,7 +73,7 @@ int CreateClientFd(const std::string& server_name, int server_port)
   WHOLEMEMORY_CHECK_NOTHROW(server_addr.sin_family == AF_INET);
   WHOLEMEMORY_CHECK_NOTHROW(server_addr.sin_port == htons(server_port));
 #if 0
-  inet_pton(AF_INET, server_name.c_str(), &server_addr.sin_addr);
+  inet_pton(AF_INET, server_name.data(), &server_addr.sin_addr);
 #endif
 
   while (connect(client_sock, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
